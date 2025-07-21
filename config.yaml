@@ -1,0 +1,648 @@
+# =============================================================================
+# COMPREHENSIVE NETWORK CONFIGURATION
+# Demonstrates all features supported by the network configuration management system
+# =============================================================================
+
+# ------------------
+# Vault & Device Management
+# ------------------
+# Multiple devices with different credential paths
+device_secrets:
+  - path: "kv/data/network-devices/core-switch-01"
+  - path: "kv/data/network-devices/core-switch-02"
+  - path: "kv/data/network-devices/edge-router-01"
+  - path: "kv/data/network-devices/distribution-switch-01"
+
+# ------------------
+# Layer 2 Configuration
+# ------------------
+# VLANs for network segmentation
+vlans:
+  - id: 10
+    name: USERS
+  - id: 20
+    name: SERVERS
+  - id: 30
+    name: VOICE
+  - id: 40
+    name: GUEST_WIFI
+  - id: 50
+    name: IoT_DEVICES
+  - id: 60
+    name: SECURITY_CAMERAS
+  - id: 70
+    name: PRINTERS
+  - id: 80
+    name: STORAGE
+  - id: 90
+    name: BACKUP
+  - id: 99
+    name: MANAGEMENT
+  - id: 100
+    name: DMZ
+  - id: 110
+    name: DEVELOPMENT
+  - id: 120
+    name: TESTING
+  - id: 999
+    name: QUARANTINE
+  - id: 666
+    name: QUARANTINE
+
+# Port Channel configurations for link aggregation
+port_channels:
+  - id: 1
+    description: "Trunk-to-Core-SW2"
+    mode: "trunk"
+    interfaces:
+      - "FastEthernet0/1"
+      - "FastEthernet0/2"
+  - id: 2
+    description: "Trunk-to-Distribution-SW1"
+    mode: "trunk"
+    interfaces:
+      - "GigabitEthernet0/1"
+      - "GigabitEthernet0/2"
+  - id: 10
+    description: "Server-Farm-Connection"
+    mode: "access"
+    interfaces:
+      - "GigabitEthernet0/10"
+      - "GigabitEthernet0/11"
+
+# Interface configurations
+interfaces:
+  # Management interface
+  - name: "Vlan99"
+    description: "Management Interface"
+    ip_address: "192.168.99.10"
+    subnet_mask: "255.255.255.0"
+    shutdown: false
+
+  # Loopback interfaces
+  - name: "Loopback0"
+    description: "Router ID for OSPF/EIGRP"
+    ip_address: "10.0.0.1"
+    subnet_mask: "255.255.255.255"
+    shutdown: false
+
+  - name: "Loopback1"
+    description: "BGP Router ID"
+    ip_address: "10.0.1.1"
+    subnet_mask: "255.255.255.255"
+    shutdown: false
+
+  # Port-Channel member interfaces
+  - name: "FastEthernet0/1"
+    description: "Link-1-to-Core-SW2"
+    shutdown: false
+
+  - name: "FastEthernet0/2"
+    description: "Link-2-to-Core-SW2"
+    shutdown: false
+
+  # Access ports
+  - name: "FastEthernet0/10"
+    description: "User-Desktop-VLAN10"
+    shutdown: false
+
+  - name: "FastEthernet0/11"
+    description: "Server-Connection-VLAN20"
+    shutdown: false
+
+  - name: "FastEthernet0/12"
+    description: "VoIP-Phone-VLAN30"
+    shutdown: false
+
+  - name: "FastEthernet0/13"
+    description: "Guest-WiFi-VLAN40"
+    shutdown: false
+
+  # WAN interfaces
+  - name: "GigabitEthernet0/0"
+    description: "WAN-Connection-ISP1"
+    ip_address: "203.0.113.10"
+    subnet_mask: "255.255.255.252"
+    shutdown: false
+
+  - name: "GigabitEthernet0/1"
+    description: "WAN-Connection-ISP2-Backup"
+    ip_address: "198.51.100.10"
+    subnet_mask: "255.255.255.252"
+    shutdown: false
+
+  # Disabled/spare ports
+  - name: "FastEthernet0/20"
+    description: "SPARE_PORT"
+    shutdown: true
+
+  - name: "FastEthernet0/21"
+    description: "QUARANTINE_PORT"
+    shutdown: true
+
+# ------------------
+# Spanning Tree Configuration
+# ------------------
+spanning_tree:
+  mode: "rapid-pvst"
+  priority: 4096
+
+# ------------------
+# Layer 3 Routing Configuration
+# ------------------
+# Static routes for various scenarios
+static_routes:
+  # Default routes with different administrative distances
+  - prefix: "0.0.0.0"
+    mask: "0.0.0.0"
+    next_hop: "203.0.113.9"
+    admin_distance: 1
+    name: "DEFAULT_ROUTE_ISP1"
+    tag: 100
+
+  - prefix: "0.0.0.0"
+    mask: "0.0.0.0"
+    next_hop: "198.51.100.9"
+    admin_distance: 250
+    name: "DEFAULT_ROUTE_ISP2_BACKUP"
+    tag: 200
+
+  # Network-specific routes
+  - prefix: "172.16.0.0"
+    mask: "255.255.0.0"
+    next_hop: "10.1.1.2"
+    admin_distance: 1
+    name: "BRANCH_NETWORK"
+    tag: 300
+
+  - prefix: "10.10.0.0"
+    mask: "255.255.0.0"
+    next_hop: "10.1.1.3"
+    admin_distance: 1
+    name: "DATACENTER_NETWORK"
+    tag: 400
+
+  # VRF-specific routes
+  - prefix: "192.168.100.0"
+    mask: "255.255.255.0"
+    next_hop: "10.1.1.4"
+    admin_distance: 1
+    vrf: "GUEST"
+    name: "GUEST_NETWORK"
+    tag: 600
+
+# OSPF Configuration
+ospf:
+  process_id: 100
+  router_id: "10.0.0.1"
+  default_information_originate: true
+  default_information_ad: 1
+  metric: 100
+  metric_type: 1
+  route_map: "OSPF_DEFAULT_ROUTE"
+  auto_cost_reference_bandwidth: 200
+  auto_cost: true
+  mtu_ignore: true
+  demand_circuit: false
+  lsa_group_pacing: 240
+  retransmission_interval: 5
+  transmit_delay: 1
+  priority: 1
+  cost: 10
+  hello_interval: 10
+  dead_interval: 40
+
+  # Passive interfaces
+  passive_interfaces:
+    - "Vlan10"
+    - "Vlan20"
+    - "Vlan30"
+    - "Vlan40"
+    - "Vlan50"
+
+  # OSPF networks
+  networks:
+    - network: "10.0.0.0"
+      wildcard_mask: "0.0.0.255"
+      area: "0"
+    - network: "192.168.10.0"
+      wildcard_mask: "0.0.0.255"
+      area: "1"
+    - network: "192.168.20.0"
+      wildcard_mask: "0.0.0.255"
+      area: "1"
+    - network: "172.16.0.0"
+      wildcard_mask: "0.0.255.255"
+      area: "2"
+    - network: "10.10.0.0"
+      wildcard_mask: "0.0.255.255"
+      area: "10"
+
+  # OSPF areas
+  areas:
+    - area_id: "1"
+      authentication: "message-digest"
+    - area_id: "2"
+      authentication: "none"
+
+# EIGRP Configuration
+eigrp:
+  as_number: 100
+  router_id: "10.0.1.1"
+  passive_interfaces:
+    - "Vlan99"
+    - "Vlan10"
+    - "Vlan20"
+    - "GigabitEthernet0/0"
+  networks:
+    - "10.0.0.0 0.0.0.255"
+    - "10.1.0.0 0.0.255.255"
+    - "192.168.0.0 0.0.255.255"
+    - "172.16.0.0 0.0.255.255"
+
+# BGP Configuration
+bgp:
+  as_number: 65001
+  router_id: "10.0.1.1"
+  neighbors:
+    - ip_address: "203.0.113.9"
+      remote_as: 65000
+      description: "ISP1-Primary"
+      update_source: "GigabitEthernet0/0"
+    - ip_address: "198.51.100.9"
+      remote_as: 65002
+      description: "ISP2-Backup"
+      update_source: "GigabitEthernet0/1"
+    - ip_address: "10.0.0.2"
+      remote_as: 65001
+      description: "IBGP-Core-Switch"
+      update_source: "Loopback1"
+    - ip_address: "10.0.0.3"
+      remote_as: 65001
+      description: "IBGP-Distribution-Switch"
+      update_source: "Loopback1"
+
+# ------------------
+# Access Control Lists
+# ------------------
+acls:
+  - name: "BLOCK_SOCIAL_MEDIA"
+    rules:
+      - action: "deny"
+        protocol: "tcp"
+        source: "192.168.10.0 0.0.0.255"
+        dest: "any eq 80"
+        log: true
+      - action: "deny"
+        protocol: "tcp"
+        source: "192.168.10.0 0.0.0.255"
+        dest: "any eq 443"
+        log: true
+      - action: "permit"
+        protocol: "ip"
+        source: "any"
+        dest: "any"
+        log: false
+
+  - name: "GUEST_NETWORK_RESTRICTIONS"
+    rules:
+      - action: "deny"
+        protocol: "ip"
+        source: "192.168.40.0 0.0.0.255"
+        dest: "192.168.10.0 0.0.0.255"
+        log: true
+      - action: "deny"
+        protocol: "ip"
+        source: "192.168.40.0 0.0.0.255"
+        dest: "192.168.20.0 0.0.0.255"
+        log: true
+      - action: "permit"
+        protocol: "tcp"
+        source: "192.168.40.0 0.0.0.255"
+        dest: "any eq 80"
+        log: false
+      - action: "permit"
+        protocol: "tcp"
+        source: "192.168.40.0 0.0.0.255"
+        dest: "any eq 443"
+        log: false
+      - action: "permit"
+        protocol: "udp"
+        source: "192.168.40.0 0.0.0.255"
+        dest: "any eq 53"
+        log: false
+
+  - name: "MANAGEMENT_ACCESS"
+    rules:
+      - action: "permit"
+        protocol: "tcp"
+        source: "192.168.99.0 0.0.0.255"
+        dest: "any eq 22"
+        log: false
+      - action: "permit"
+        protocol: "tcp"
+        source: "192.168.99.0 0.0.0.255"
+        dest: "any eq 443"
+        log: false
+      - action: "permit"
+        protocol: "udp"
+        source: "192.168.99.0 0.0.0.255"
+        dest: "any eq 161"
+        log: false
+
+# ------------------
+# Prefix Lists
+# ------------------
+prefix_lists:
+  - name: "ALLOW_INTERNAL_NETWORKS"
+    entries:
+      - action: "permit"
+        prefix: "10.0.0.0/8"
+        le: 24
+      - action: "permit"
+        prefix: "192.168.0.0/16"
+        le: 24
+      - action: "permit"
+        prefix: "172.16.0.0/12"
+        le: 24
+
+  - name: "DENY_DEFAULT_ROUTES"
+    entries:
+      - action: "deny"
+        prefix: "0.0.0.0/0"
+      - action: "permit"
+        prefix: "0.0.0.0/0"
+        le: 32
+
+  - name: "CUSTOMER_ROUTES"
+    entries:
+      - action: "permit"
+        prefix: "203.0.113.0/24"
+        ge: 24
+        le: 30
+      - action: "permit"
+        prefix: "198.51.100.0/24"
+        ge: 24
+        le: 30
+
+# ------------------
+# Route Maps
+# ------------------
+route_maps:
+  - name: "OSPF_DEFAULT_ROUTE"
+    clauses:
+      - seq: 10
+        action: "permit"
+        description: "Set metric for default route"
+        set:
+          metric: 100
+          metric_type: 1
+
+  - name: "BGP_INBOUND_FILTER"
+    clauses:
+      - seq: 10
+        action: "permit"
+        description: "Allow customer routes"
+        match:
+          ip_address:
+            prefix_list: "CUSTOMER_ROUTES"
+        set:
+          local_preference: 200
+      - seq: 20
+        action: "deny"
+        description: "Block everything else"
+
+  - name: "BGP_OUTBOUND_FILTER"
+    clauses:
+      - seq: 10
+        action: "permit"
+        description: "Advertise internal networks"
+        match:
+          ip_address:
+            prefix_list: "ALLOW_INTERNAL_NETWORKS"
+        set:
+          as_path_prepend: "65001 65001"
+      - seq: 20
+        action: "deny"
+        description: "Block default routes"
+        match:
+          ip_address:
+            prefix_list: "DENY_DEFAULT_ROUTES"
+
+# ------------------
+# DHCP Configuration
+# ------------------
+dhcp:
+  enabled: true
+  pools:
+    - name: "USERS_POOL"
+      network: "192.168.10.0"
+      subnet_mask: "255.255.255.0"
+      default_router: "192.168.10.1"
+      dns_servers:
+        - "8.8.8.8"
+        - "8.8.4.4"
+        - "1.1.1.1"
+      domain_name: "company.local"
+      lease_time: "7 days"
+
+    - name: "GUEST_POOL"
+      network: "192.168.40.0"
+      subnet_mask: "255.255.255.0"
+      default_router: "192.168.40.1"
+      dns_servers:
+        - "8.8.8.8"
+        - "1.1.1.1"
+      domain_name: "guest.local"
+      lease_time: "1 day"
+
+    - name: "IoT_POOL"
+      network: "192.168.50.0"
+      subnet_mask: "255.255.255.0"
+      default_router: "192.168.50.1"
+      dns_servers:
+        - "192.168.99.10"
+        - "8.8.8.8"
+      domain_name: "iot.company.local"
+      lease_time: "30 days"
+
+    - name: "VOICE_POOL"
+      network: "192.168.30.0"
+      subnet_mask: "255.255.255.0"
+      default_router: "192.168.30.1"
+      dns_servers:
+        - "192.168.99.10"
+        - "8.8.8.8"
+      domain_name: "voice.company.local"
+      lease_time: "7 days"
+
+# ------------------
+# HSRP Configuration
+# ------------------
+hsrp:
+  interface: "Vlan10"
+  groups:
+    - id: 10
+      ip_address: "192.168.10.1"
+      priority: 110
+      preempt: true
+      track: 1
+      decrement: 20
+    - id: 20
+      ip_address: "192.168.20.1"
+      priority: 105
+      preempt: true
+      track: 2
+      decrement: 15
+
+# ------------------
+# VRF Configuration
+# ------------------
+vrfs:
+  - name: "GUEST"
+    description: "Guest network isolation"
+  - name: "VOICE"
+    description: "Voice traffic isolation"
+  - name: "MANAGEMENT"
+    description: "Management traffic isolation"
+  - name: "IoT"
+    description: "IoT devices isolation"
+  - name: "SECURITY"
+    description: "Security cameras and systems"
+
+# ------------------
+# Quality of Service
+# ------------------
+qos:
+  policy_map: "ENTERPRISE_QOS"
+  interface: "GigabitEthernet0/0"
+
+# ------------------
+# System Services
+# ------------------
+# Logging configuration
+logging:
+  server: "192.168.99.100"
+  level: "informational"
+
+# NTP configuration
+ntp:
+  servers:
+    - "pool.ntp.org"
+    - "time.nist.gov"
+    - "time.google.com"
+    - "192.168.99.10"
+
+# SNMP configuration
+snmp:
+  community: "public"
+  contact: "Network Admin <admin@company.com>"
+  location: "Data Center - Rack 42"
+
+# ------------------
+# User Management
+# ------------------
+users:
+  - username: "admin"
+    password: "SecureP@ssw0rd!"
+    privilege: 15
+  - username: "netop"
+    password: "NetOp123!"
+    privilege: 10
+  - username: "readonly"
+    password: "ReadOnly456!"
+    privilege: 5
+  - username: "backup"
+    password: "Backup789!"
+    privilege: 15
+  - username: "monitor"
+    password: "Monitor321!"
+    privilege: 1
+
+# Authentication configuration
+authentication:
+  method: "local"
+
+# ------------------
+# Verification Commands
+# ------------------
+# Commands to run after configuration is applied
+verify_commands:
+  # Interface verification
+  - "show ip interface brief"
+  - "show interfaces status"
+  - "show interfaces trunk"
+  - "show etherchannel summary"
+
+  # VLAN verification
+  - "show vlan brief"
+  - "show vlan"
+
+  # Routing verification
+  - "show ip route"
+  - "show ip route summary"
+  - "show ip route ospf"
+  - "show ip route eigrp"
+  - "show ip route bgp"
+  - "show ip route static"
+
+  # Protocol-specific verification
+  - "show ip ospf neighbor"
+  - "show ip ospf database"
+  - "show ip ospf interface brief"
+  - "show ip eigrp neighbors"
+  - "show ip eigrp topology"
+  - "show ip bgp summary"
+  - "show ip bgp neighbors"
+
+  # DHCP verification
+  - "show ip dhcp binding"
+  - "show ip dhcp pool"
+  - "show ip dhcp conflict"
+
+  # HSRP verification
+  - "show standby brief"
+  - "show standby"
+
+  # VRF verification
+  - "show vrf"
+  - "show ip route vrf GUEST"
+  - "show ip route vrf VOICE"
+
+  # Access list verification
+  - "show access-lists"
+  - "show ip access-lists"
+
+  # System verification
+  - "show version"
+  - "show memory"
+  - "show processes cpu"
+  - "show logging"
+  - "show ntp status"
+  - "show snmp"
+  - "show users"
+
+  # Configuration verification
+  - "show running-config | section router ospf"
+  - "show running-config | section router eigrp"
+  - "show running-config | section router bgp"
+  - "show running-config | section ip route"
+  - "show running-config | section access-list"
+  - "show running-config | section route-map"
+  - "show running-config | section ip prefix-list"
+  - "show running-config | section vlan"
+  - "show running-config | section interface"
+  - "show running-config | section dhcp"
+  - "show running-config | section hsrp"
+  - "show running-config | section vrf"
+
+  # Spanning tree verification
+  - "show spanning-tree"
+  - "show spanning-tree brief"
+  - "show spanning-tree root"
+
+  # Hardware verification
+  - "show inventory"
+  - "show environment"
+  - "show power"
+  - "show temperature"
